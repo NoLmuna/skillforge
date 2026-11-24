@@ -1,12 +1,60 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Studio from "../src/components/studio";
 import { buildGreenfieldProfile } from "../src/lib/profile";
 import { generateAgentsMd } from "../src/lib/generators";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+it("generates from an inspected repository and then audits its existing instructions", async () => {
+  const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(
+    Response.json({
+      repository: { owner: "org", repo: "app" },
+      packageJson: '{"scripts":{"build":"next build"}}',
+      packageNotice: null,
+      profile: {
+        source: "package-json",
+        packageManager: "pnpm",
+        stack: ["nextjs"],
+        scripts: { build: "next build" },
+      },
+      agentFiles: [
+        { name: "CLAUDE.md", markdown: "# Instructions\nRun npm test." },
+      ],
+    }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  render(createElement(Studio));
+  fireEvent.click(screen.getByRole("button", { name: "Existing repo" }));
+  fireEvent.change(screen.getByLabelText("GitHub Repository URL"), {
+    target: { value: "org/app" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Inspect Repo" }));
+  const audit = await screen.findByRole("button", {
+    name: /Load existing file into Audit mode/,
+  });
+  expect(fetcher).toHaveBeenCalledWith(
+    "/api/inspect-repo",
+    expect.objectContaining({
+      method: "POST",
+      body: '{"url":"org/app"}',
+    }),
+  );
+  expect(screen.getByLabelText("Markdown preview").textContent).toContain(
+    "pnpm run build",
+  );
+  fireEvent.click(audit);
+  expect(screen.getByLabelText("Existing CLAUDE.md")).toHaveProperty(
+    "value",
+    "# Instructions\nRun npm test.",
+  );
+  expect(screen.getByText(/missing package script/)).toBeTruthy();
+});
 
 it("updates commands, engineering rules, and boundaries from the greenfield controls", () => {
   render(createElement(Studio));

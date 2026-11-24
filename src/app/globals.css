@@ -1,5 +1,73 @@
 @import "tailwindcss";
 
+.github-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.github-input-row input:not([type]) {
+  flex: 1 1 190px;
+  min-width: 0;
+  margin: 0;
+}
+.github-input-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 6px;
+  background: var(--green);
+  color: white;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.github-token {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.github-token label {
+  margin-top: 8px;
+}
+.github-token input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.github-report,
+.github-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.github-report {
+  background: var(--mint);
+}
+.github-error {
+  background: #fff2ee;
+  color: #9d3527;
+}
+.github-report li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-top: 6px;
+}
+.github-report button {
+  color: var(--green);
+  text-align: left;
+  text-decoration: underline;
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

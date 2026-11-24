@@ -64,7 +64,10 @@ function stringEntries(value: unknown): [string, string][] {
   );
 }
 
-export function inspectPackageJson(rawJson: string): PackageJsonResult {
+export function inspectPackageJson(
+  rawJson: string,
+  lockfileManagers: readonly PackageManager[] = [],
+): PackageJsonResult {
   let manifest: unknown;
   try {
     manifest = JSON.parse(rawJson);
@@ -91,9 +94,12 @@ export function inspectPackageJson(rawJson: string): PackageJsonResult {
   const declaredManager = typeof manifest.packageManager === "string"
     ? manifest.packageManager.split("@", 1)[0]
     : undefined;
-  const packageManager = declaredManager === "pnpm" || declaredManager === "yarn" || declaredManager === "bun"
+  const declared = declaredManager === "npm" || declaredManager === "pnpm" || declaredManager === "yarn" || declaredManager === "bun"
     ? declaredManager
-    : "npm";
+    : undefined;
+  const packageManager = declared && lockfileManagers.includes(declared)
+    ? declared
+    : lockfileManagers[0] ?? declared ?? "npm";
 
   return {
     ok: true,

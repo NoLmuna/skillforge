@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SkillForge
 
-## Getting Started
+SkillForge builds and audits Markdown instructions for coding agents. Draft a project-wide `AGENTS.md` or a reusable `SKILL.md`, review live diagnostics, and export the Markdown for your agent.
 
-First, run the development server:
+## Studio
 
-```bash
+| Workflow | What it does |
+| --- | --- |
+| Greenfield builder | Select a stack and package manager, then set conventions, protected paths, and project rules. |
+| Existing repo | Paste a `package.json` or inspect a public GitHub URL or `owner/repo`. SkillForge checks the default branch root for dependencies, scripts, and lockfiles. Open any detected `AGENTS.md`, `CLAUDE.md`, or `.cursorrules` in Audit mode. |
+| Skill studio | Start with a feature planning, PR review, bug investigation, or migration blueprint. Edit its trigger and workflow before exporting. |
+| Token and spec linter | Audit generated or pasted files for token overhead, instruction quality, script references, and skill frontmatter. |
+
+The GitHub inspector works without a token. If you hit GitHub’s rate limit, supply an optional token for the inspection request. SkillForge forwards it to GitHub as a bearer credential and does not store or log it. The inspector reads regular files at the root and imports text files up to 1 MiB each. When multiple lockfiles exist, it prefers a matching package manager declaration and otherwise checks pnpm, Bun, Yarn, then npm.
+
+## Reference corpus
+
+- [agentskills/agentskills](https://github.com/agentskills/agentskills) defines the skill format and progressive disclosure conventions.
+- [mattpocock/skills](https://github.com/mattpocock/skills) informs planning, debugging, and test-first workflows.
+- [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) informs production engineering, review, and migration guardrails.
+- [anthropics/skills](https://github.com/anthropics/skills) informs skill authoring and trigger phrasing.
+- [wshobson/agents](https://github.com/wshobson/agents) informs shared instructions and portability across agent tools.
+
+## Local development
+
+```sh
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open the studio at [localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```sh
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
