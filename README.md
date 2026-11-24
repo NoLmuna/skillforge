@@ -2,6 +2,8 @@
 
 SkillForge builds and audits Markdown instructions for coding agents. Draft a project-wide `AGENTS.md` or a reusable `SKILL.md`, review live diagnostics, and export the Markdown for your agent.
 
+<img width="1889" height="958" alt="SkillForge Instruction Studio split-pane interface" src="https://github.com/user-attachments/assets/006163c7-5696-4fe9-84e6-1cd1449b4537" />
+
 ## Studio
 
 | Workflow | What it does |
