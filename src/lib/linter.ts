@@ -38,6 +38,7 @@ export interface LintOptions {
 }
 
 export interface LintResult {
+  readonly skillName?: string;
   readonly metrics: MarkdownMetrics;
   readonly diagnostics: readonly LintDiagnostic[];
 }
@@ -156,18 +157,18 @@ function lintDescription(description: string, line: number): LintDiagnostic[] {
   return diagnostics;
 }
 
-function lintFrontmatter(lines: readonly string[]): LintDiagnostic[] {
+function lintFrontmatter(lines: readonly string[]): { diagnostics: LintDiagnostic[]; skillName?: string } {
   const delimiter = /^---[ \t]*$/;
   const hasOpening = delimiter.test(lines[0]?.replace(/^\uFEFF/, "") ?? "");
   const closing = hasOpening ? lines.findIndex((line, index) => index > 0 && delimiter.test(line)) : -1;
   if (closing < 0) {
-    return [{
+    return { diagnostics: [{
       code: "missing-frontmatter",
       severity: "error",
       line: 1,
       message: hasOpening ? "YAML frontmatter is missing its closing delimiter." : "SKILL.md must start with YAML frontmatter.",
       suggestion: "Put name and description at the top of the file between two `---` delimiter lines.",
-    }];
+    }] };
   }
 
   const lineCounter = new LineCounter();
@@ -175,16 +176,17 @@ function lintFrontmatter(lines: readonly string[]): LintDiagnostic[] {
   const document = parseDocument(header, { lineCounter, prettyErrors: false });
   const syntaxError = document.errors[0] ?? document.warnings[0];
   if (syntaxError || !isMap(document.contents)) {
-    return [{
+    return { diagnostics: [{
       code: "invalid-frontmatter",
       severity: "error",
       line: syntaxError ? lineCounter.linePos(syntaxError.pos[0]).line + 1 : 2,
       message: syntaxError?.message ?? "YAML frontmatter must contain a mapping of fields to values.",
       suggestion: "Use valid YAML with one key per metadata field, including name and description.",
-    }];
+    }] };
   }
 
   const diagnostics: LintDiagnostic[] = [];
+  let skillName: string | undefined;
   for (const key of ["name", "description"] as const) {
     const field = document.get(key, true);
     // Resolve scalar aliases without expanding arbitrary YAML objects.
@@ -192,7 +194,10 @@ function lintFrontmatter(lines: readonly string[]): LintDiagnostic[] {
     const value = isScalar(scalar) && typeof scalar.value === "string" ? scalar.value : "";
     const line = isNode(field) && field.range ? lineCounter.linePos(field.range[0]).line + 1 : 1;
     if (key === "name") {
-      if (value.length <= skillFrontmatter.nameMaxLength && skillFrontmatter.namePattern.test(value)) continue;
+      if (value.length <= skillFrontmatter.nameMaxLength && skillFrontmatter.namePattern.test(value)) {
+        skillName = value;
+        continue;
+      }
       diagnostics.push({
         code: "invalid-skill-name",
         severity: "error",
@@ -213,7 +218,7 @@ function lintFrontmatter(lines: readonly string[]): LintDiagnostic[] {
     }
   }
 
-  return diagnostics;
+  return { diagnostics, skillName };
 }
 
 export function lintMarkdown(markdown: string, options: LintOptions): LintResult {
@@ -222,7 +227,7 @@ export function lintMarkdown(markdown: string, options: LintOptions): LintResult
   const metrics = estimateSize(markdown, lines.length);
   if (options.kind === "agents") return { metrics, diagnostics: lintAgents(lines, options.profile) };
 
-  const diagnostics = lintFrontmatter(lines);
+  const { diagnostics, skillName } = lintFrontmatter(lines);
   if (metrics.lineCount > 500 || metrics.estimatedTokens > 2500) {
     diagnostics.push({
       code: "skill-size",
@@ -231,5 +236,5 @@ export function lintMarkdown(markdown: string, options: LintOptions): LintResult
       suggestion: "Keep the core workflow in SKILL.md. Move detailed examples or procedures into helper files and link to them from the relevant steps.",
     });
   }
-  return { metrics, diagnostics };
+  return { metrics, diagnostics, skillName };
 }

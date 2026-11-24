@@ -10,6 +10,10 @@ import { technologyNames, type ProjectProfile } from "./profile";
 
 export interface GenerateAgentsOptions {
   readonly includePortability?: boolean;
+  readonly strictTypes?: boolean;
+  readonly testFirst?: boolean;
+  readonly protectedPaths?: readonly string[];
+  readonly customRules?: readonly string[];
 }
 
 export interface GeneratedAgentsMd {
@@ -21,6 +25,8 @@ export interface GenerateSkillInput {
   readonly blueprint: SkillBlueprintId;
   readonly name?: string;
   readonly description?: string;
+  readonly workflow?: readonly string[];
+  readonly guardrails?: readonly string[];
 }
 
 const primaryScripts = ["dev", "start", "typecheck", "lint", "test", "check", "build"];
@@ -74,6 +80,8 @@ export function generateAgentsMd(
   const attributions = new Map<string, RuleAttribution>();
   const includedText = new Set<string>();
   for (const { id, category, sourceRepo, sourceUrl, rationale, markdown, technologies } of rules) {
+    if (id === "typescript-strictness" && options.strictTypes === false) continue;
+    if (id === "focused-test-loop" && options.testFirst === false) continue;
     if (technologies && !technologies.some((tool) => stack.has(tool))) continue;
     const ruleText = markdown.trim();
     if (attributions.has(id) || includedText.has(ruleText)) continue;
@@ -81,6 +89,20 @@ export function generateAgentsMd(
     sections[category].push(`- ${ruleText}`);
     includedText.add(ruleText);
     attributions.set(id, { id, category, sourceRepo, sourceUrl, rationale });
+  }
+
+  const additions = [
+    ...(options.protectedPaths ?? []).filter(path => path.trim()).map(path => `Preserve the protected path \`${path.trim()}\`.`),
+    ...(options.customRules ?? []),
+  ];
+  for (const entry of additions) {
+    const rule = entry.trim();
+    if (!rule || includedText.has(rule)) continue;
+    if (/[\r\n]|[├└]──|(?:^|\s)[|`+\\]--/.test(rule)) {
+      throw new RangeError("Enter one rule or protected path per line and omit directory trees.");
+    }
+    sections.boundaries.push(`- ${rule}`);
+    includedText.add(rule);
   }
 
   const markdown = [
@@ -100,6 +122,7 @@ export function generateAgentsMd(
     "",
   ].join("\n");
 
+  if (markdown.split("\n").length >= 150) throw new RangeError("Shorten the custom configuration to keep AGENTS.md under 150 lines.");
   return { markdown, attributions: [...attributions.values()] };
 }
 
@@ -141,10 +164,10 @@ export function generateSkillMd(input: GenerateSkillInput): string {
     blueprint.whenToUse,
     "",
     "## Workflow",
-    ...blueprint.workflow.map((step, index) => `${index + 1}. ${step}`),
+    ...(input.workflow ?? blueprint.workflow).map((step, index) => `${index + 1}. ${step}`),
     "",
     "## Guardrails",
-    ...blueprint.guardrails.map((guardrail) => `- ${guardrail}`),
+    ...(input.guardrails ?? blueprint.guardrails).map((guardrail) => `- ${guardrail}`),
     "",
   ].join("\n");
 }
